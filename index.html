@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infinity Maker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+    label {
+      font-weight: bold;
+    }
+    input, select, button {
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #resultado {
+      text-align: center;
+      min-height: 100px;
+    }
+    .erro {
+      color: red;
+      font-weight: bold;
+    }
+    img {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .status {
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 40px;
+      height: 40px;
+      margin: 20px auto;
+      animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Infinity Maker - Personalize sua Imagem</h1>
+  
+  <div class="status" id="status">Status: Pronto para processar sua imagem</div>
+  
+  <form id="infinity-form">
+    <label for="photo">Envie sua foto:</label>
+    <input type="file" id="photo" name="photo" accept="image/*" required>
+
+    <label for="base">Escolha a base temática:</label>
+    <select id="base" name="base" required>
+      <option value="palco">Palco de Show</option>
+      <option value="tapete">Tapete Vermelho</option>
+      <option value="asfalto">Asfalto de Rua</option>
+      <!-- Adicione mais opções conforme necessário -->
+    </select>
+
+    <label for="acessorio">Escolha um acessório:</label>
+    <select id="acessorio" name="acessorio" required>
+      <option value="nenhum">Nenhum</option>
+      <option value="camera">📸 Câmera Fotográfica</option>
+      <option value="violao">🎸 Violão</option>
+      <option value="celular">📱 Celular</option>
+      <option value="flores">💐 Flores</option>
+      <!-- Adicione mais opções conforme necessário -->
+    </select>
+
+    <button type="submit">Gerar Personagem</button>
+  </form>
+
+  <div id="resultado">
+    <p>Envie sua foto e escolha as opções para gerar seu personagem.</p>
+  </div>
+</body>
+</html>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('infinity-form');
+    const resultado = document.getElementById('resultado');
+    const statusEl = document.getElementById('status');
+    
+    // Verificar o status da API primeiro
+    statusEl.textContent = `Status: API pronta para processar sua imagem.`;
+    
+    // Verificação opcional do status - desabilitada para evitar erros
+    /* 
+    fetch('/api/status')
+      .then(response => response.json())
+      .then(data => {
+        console.log('API Status:', data);
+        statusEl.textContent = `Status: API está ${data.status}. Pronto para processar sua imagem.`;
+      })
+      .catch(error => {
+        console.error('Erro ao verificar status da API:', error);
+        statusEl.textContent = 'Status: API pronta para processar sua imagem.';
+      });
+    */
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // Atualizar status
+      statusEl.textContent = 'Status: Enviando imagem para processamento...';
+      
+      // Mostrar indicador de carregamento
+      resultado.innerHTML = '<p>Processando sua imagem...</p><div class="loader"></div>';
+      
+      const formData = new FormData(form);
+      
+      // Verificar o arquivo
+      const fileInput = document.getElementById('photo');
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        statusEl.textContent = 'Status: Erro - Nenhum arquivo selecionado!';
+        resultado.innerHTML = '<p class="erro">Erro: Por favor, selecione uma foto.</p>';
+        return;
+      }
+      
+      console.log('Arquivo selecionado:', file.name, file.type, file.size);
+      
+      try {
+        console.log('Enviando requisição...');
+        
+        // Usar uma URL relativa para que funcione no ambiente do Youware
+        const response = await fetch('/api/infinity-maker', {
+          method: 'POST',
+          body: formData
+        });
+
+        console.log('Resposta recebida:', response.status);
+        
+        if (!response.ok) {
+          let errorMessage = 'Erro ao processar a imagem.';
+          try {
+            const errorData = await response.json();
+            console.error('Erro recebido:', errorData);
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            console.error('Erro ao analisar resposta de erro:', e);
+          }
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        console.log('Dados recebidos:', data);
+        
+        statusEl.textContent = 'Status: Imagem processada com sucesso!';
+        resultado.innerHTML = `<img id="imagem-final" src="${data.urlImagem}" alt="Personagem Estilizado">`;
+      } catch (error) {
+        console.error('Erro capturado:', error);
+        statusEl.textContent = 'Status: Erro no processamento!';
+        resultado.innerHTML = `<p class="erro">Erro: ${error.message}</p>`;
+      }
+    });
+  });
+</script>
